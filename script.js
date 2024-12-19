@@ -63,6 +63,11 @@ function showUserComments(ctx) {
     .catch(console.error);
 }
 
+page.base('/');
+page({
+  hashbang: true
+});
+
 page('/', showUsers);
 page('/user/:userId', showUserComments);
 page();
