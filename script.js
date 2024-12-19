@@ -7,6 +7,7 @@ function showUsers() {
     <h1>Список пользователей</h1>
     <ul id="usersList"></ul>
   `;
+
   axios.get('https://jsonplaceholder.typicode.com/users')
     .then(response => {
       const users = response.data;
@@ -16,8 +17,8 @@ function showUsers() {
         const li = document.createElement('li');
         const link = document.createElement('a');
 
-        link.href = `/user/${user.id}`;
-        link.textContent = `${user.name} (${user.email})`;
+        link.href = `#/user/${user.id}`;
+        link.textContent = user.name;
 
         li.appendChild(link);
         usersList.appendChild(li);
@@ -27,7 +28,7 @@ function showUsers() {
       links.forEach(link => {
         link.addEventListener('click', (e) => {
           e.preventDefault();
-          const href = e.target.getAttribute('href');
+          const href = e.target.getAttribute('href').replace('#', '');
           page(href);
         });
       });
@@ -45,26 +46,38 @@ function showUserComments(ctx) {
 
   document.getElementById('backButton').addEventListener('click', () => page('/'));
 
-  axios.get('https://jsonplaceholder.typicode.com/comments')
+  axios.get(`https://jsonplaceholder.typicode.com/posts?userId=${userId}`)
     .then(response => {
-      const comments = response.data.filter(comment => comment.postId == userId);
-      const commentsList = document.getElementById('commentsList');
+      const posts = response.data;
+      const postIds = posts.map(post => post.id);
 
-      if (comments.length > 0) {
-        comments.forEach(comment => {
-          const li = document.createElement('li');
-          li.textContent = `${comment.name}: ${comment.body}`;
-          commentsList.appendChild(li);
-        });
+      if (postIds.length > 0) {
+        axios.get('https://jsonplaceholder.typicode.com/comments')
+          .then(commentResponse => {
+            const comments = commentResponse.data.filter(comment => postIds.includes(comment.postId));
+            const commentsList = document.getElementById('commentsList');
+
+            if (comments.length > 0) {
+              comments.forEach(comment => {
+                const li = document.createElement('li');
+                li.textContent = `${comment.name}: ${comment.body}`;
+                commentsList.appendChild(li);
+              });
+            } else {
+              commentsList.innerHTML = '<li>Комментарии отсутствуют</li>';
+            }
+          })
+          .catch(console.error);
       } else {
-        commentsList.innerHTML = '<li>Комментарии отсутствуют</li>';
+        document.getElementById('commentsList').innerHTML = '<li>Посты отсутствуют</li>';
       }
     })
     .catch(console.error);
 }
 
+page.base('/');
 page('/', showUsers);
 page('/user/:userId', showUserComments);
-page();
-
-page('/');
+page({
+  hashbang: true 
+});
