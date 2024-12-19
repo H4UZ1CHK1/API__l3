@@ -1,56 +1,57 @@
-console.log("Скрипт загружен"); 
+console.log("SPA script loaded");
 
-axios.get('https://jsonplaceholder.typicode.com/users')
-  .then(response => {
-    console.log(response.data); 
-    const users = response.data;
-    const usersList = document.getElementById('usersList');
+const app = document.getElementById('app');
 
-    if (!usersList) {
-      console.error("usersList not found");
-      return;
-    }
+function showUsers() {
+  app.innerHTML = `
+    <h1>Список пользователей</h1>
+    <ul id="usersList"></ul>
+  `;
+  axios.get('https://jsonplaceholder.typicode.com/users')
+    .then(response => {
+      const users = response.data;
+      const usersList = document.getElementById('usersList');
 
-    users.forEach(user => {
-      const li = document.createElement('li');
-      const link = document.createElement('a');
+      users.forEach(user => {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
 
-      link.href = "javascript:void(0)";
-      link.textContent = `${user.name} (${user.email})`;
-      link.dataset.userId = user.id; 
+        link.href = `/user/${user.id}`;
+        link.textContent = `${user.name} (${user.email})`;
 
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log(user.name);
-        loadUserComments(user.id);
+        li.appendChild(link);
+        usersList.appendChild(li);
       });
 
-      li.appendChild(link);
-      usersList.appendChild(li);
-    });
-  })
-  .catch(error => {
-    console.error(error);
-  });
+      const links = document.querySelectorAll('#usersList a');
+      links.forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const href = e.target.getAttribute('href');
+          page(href);
+        });
+      });
+    })
+    .catch(console.error);
+}
 
-function loadUserComments(userId) {
-  console.log(userId);
+function showUserComments(ctx) {
+  const userId = ctx.params.userId;
+  app.innerHTML = `
+    <button id="backButton">Назад</button>
+    <h1>Комментарии пользователя ${userId}</h1>
+    <ul id="commentsList"></ul>
+  `;
+
+  document.getElementById('backButton').addEventListener('click', () => page('/'));
+
   axios.get('https://jsonplaceholder.typicode.com/comments')
     .then(response => {
-      console.log(response.data);
-      const comments = response.data;
-      const filteredComments = comments.filter(comment => comment.postId === userId);
+      const comments = response.data.filter(comment => comment.postId == userId);
       const commentsList = document.getElementById('commentsList');
 
-      if (!commentsList) {
-        console.error("commentsList not found");
-        return;
-      }
-
-      commentsList.innerHTML = '';
-
-      if (filteredComments.length > 0) {
-        filteredComments.forEach(comment => {
+      if (comments.length > 0) {
+        comments.forEach(comment => {
           const li = document.createElement('li');
           li.textContent = `${comment.name}: ${comment.body}`;
           commentsList.appendChild(li);
@@ -59,7 +60,11 @@ function loadUserComments(userId) {
         commentsList.innerHTML = '<li>Комментарии отсутствуют</li>';
       }
     })
-    .catch(error => {
-      console.error('Ошибка при получении комментариев:', error);
-    });
+    .catch(console.error);
 }
+
+page('/', showUsers);
+page('/user/:userId', showUserComments);
+page();
+
+page('/');
